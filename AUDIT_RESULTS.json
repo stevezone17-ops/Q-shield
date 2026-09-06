@@ -1,0 +1,95 @@
+{
+  "audit_metadata": {
+    "project": "Q-SHIELD",
+    "timestamp": "2026-09-06T19:30:00Z",
+    "audit_status": "PASS WITH CORRECTIONS",
+    "auditor": "Antigravity AI (Google DeepMind Team)",
+    "workspace": "D:/quantum_cia3"
+  },
+  "test_suite": {
+    "pytest_total": 80,
+    "pytest_passed": 80,
+    "pytest_failed": 0,
+    "tsc_build_errors": 0
+  },
+  "benchmarks": {
+    "pqc_ml_dsa_65": {
+      "iterations": 20,
+      "mean_keygen_ms": 8.30,
+      "mean_sign_ms": 41.79,
+      "mean_verify_ms": 9.69,
+      "mean_total_session_ms": 59.86,
+      "latency_scope": "Session-level classical authentication operation"
+    },
+    "ai_inference": {
+      "mean_latency_ms": 2.41,
+      "model_type": "Isolation Forest (14 windowed features)"
+    }
+  },
+  "experiment_results": {
+    "clean_baseline": {
+      "n_runs": 50,
+      "mean_qber_pct": 2.01,
+      "false_positive_rate_pct": 0.0,
+      "key_approval_rate_pct": 100.0
+    },
+    "pns_sweep_0_40": {
+      "n_runs": 10,
+      "mean_qber_pct": 2.08,
+      "multi_photon_pulse_pct": 39.8,
+      "ai_detection_rate_pct": 100.0
+    },
+    "trojan_horse_intensity_0_5": {
+      "n_runs": 10,
+      "mean_qber_pct": 2.03,
+      "trojan_photons_detected": 49.6,
+      "ai_detection_rate_pct": 100.0
+    },
+    "detector_blinding_intensity_0_8": {
+      "n_runs": 10,
+      "mean_qber_pct": 2.05,
+      "detector_current_ma": 4.01,
+      "ai_detection_rate_pct": 100.0
+    },
+    "mitm_without_pqc": {
+      "n_runs": 10,
+      "mean_qber_pct": 27.15,
+      "key_approval_rate_pct": 0.0,
+      "mitm_intercept_rate_pct": 100.0
+    },
+    "mitm_with_pqc": {
+      "n_runs": 10,
+      "pqc_signature_verification": "FAIL",
+      "pqc_block_rate_pct": 100.0,
+      "key_approval_rate_pct": 0.0
+    }
+  },
+  "scientific_corrections": [
+    {
+      "issue": "Clean baseline UI displayed 'Photon Statistics: 100.0% / PNS RISK'",
+      "fix": "Reclassified photon statistic ratio 1.00 as 'BASELINE' when avgPhotonStats <= 1.15",
+      "files_updated": ["simulation/attacks/pns.py", "simulation/engine.py", "backend/app/schemas.py"]
+    },
+    {
+      "issue": "Key summary card displayed 'FINAL SECRET KEY / SECURE KEY' during compromised/rejected runs",
+      "fix": "Renamed header to 'DERIVED SECRET KEY' and bound badge status to actual policy action ('APPROVED BY SECURITY POLICY' / 'REJECTED BY SECURITY POLICY')",
+      "files_updated": ["frontend/src/components/StatisticsSummary.tsx", "frontend/src/components/SimulationExplanationReport.tsx", "frontend/src/utils/reportGenerator.ts"]
+    },
+    {
+      "issue": "Detector blinding telemetry mislabeling as PNS RISK",
+      "fix": "Separated PNS photon ratio evaluation from detector blinding current overload telemetry",
+      "files_updated": ["simulation/attacks/detector_blinding.py", "simulation/engine.py"]
+    },
+    {
+      "issue": "PQC latency reported as '<1 ms per quantum round'",
+      "fix": "Corrected latency metric to 59.86 ms total session-level classical authentication overhead",
+      "files_updated": ["README.md", "DRAFT_REPORT.md", "PRESENTATION_SCRIPT.md"]
+    }
+  ],
+  "remaining_scientific_limitations": [
+    "Orthogonal state-flip noise model (simulated bit/phase flip, not full density matrix / Kraus operator master equation)",
+    "SHA-256 truncation used for privacy amplification (practical hash-based compression, not Toeplitz universal hashing)",
+    "Isolation Forest trained on simulated telemetry (requires re-tuning / calibration for physical QRNG hardware)",
+    "PQC ML-DSA-65 authenticates classical message frames, not physical quantum pulses"
+  ]
+}

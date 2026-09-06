@@ -1,0 +1,75 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --bg-dark: #05070b;
+    --surface-dark: #080c12;
+    --surface-panel: #0d131b;
+    --surface-elevated: #101720;
+    --border-subtle: #1e293b;
+    --border-accent: #2a384c;
+    --primary-cyan: #0284c7;
+    --success-emerald: #10b981;
+    --warning-amber: #f59e0b;
+    --danger-rose: #f43f5e;
+    --info-blue: #3b82f6;
+  }
+
+  body {
+    background-color: var(--bg-dark);
+    color: #f1f5f9;
+    font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    overflow-x: hidden;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* Focus indicator for keyboard accessibility */
+  *:focus-visible {
+    outline: 2px solid #0284c7;
+    outline-offset: 2px;
+  }
+}
+
+/* Custom Professional Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: #05070b;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #1e293b;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #334155;
+}
+
+/* Engineering Panel Utility Classes */
+.panel-base {
+  background-color: #0d131b;
+  border: 1px solid #1e293b;
+  border-radius: 0.75rem;
+}
+
+.panel-elevated {
+  background-color: #101720;
+  border: 1px solid #2a384c;
+  border-radius: 0.75rem;
+}
+
+/* Support Reduced Motion */
+@media (prefers-reduced-motion: reduce) {
+  *, ::before, ::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
