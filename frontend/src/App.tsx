@@ -45,20 +45,24 @@ export const App: React.FC = () => {
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const [apiOnline, setApiOnline] = useState<boolean | null>(null);
+  const [retryAction, setRetryAction] = useState<(() => void) | null>(null);
+
+  const checkConnection = async () => {
+    try {
+      await checkHealth();
+      setApiOnline(true);
+      setError(null);
+      await handleRunSimulation();
+    } catch (err: any) {
+      console.warn('Backend API connection check failed:', err);
+      setApiOnline(false);
+      setError(err.message || 'Backend API is offline. Ensure FastAPI server is running on http://127.0.0.1:8001.');
+      setRetryAction(() => () => checkConnection());
+    }
+  };
 
   useEffect(() => {
-    const init = async () => {
-      try {
-        await checkHealth();
-        setApiOnline(true);
-        handleRunSimulation();
-      } catch (err) {
-        console.warn('Backend API connection check failed:', err);
-        setApiOnline(false);
-        setError('Backend API is offline. Ensure FastAPI server is running on http://127.0.0.1:8001.');
-      }
-    };
-    init();
+    checkConnection();
   }, []);
 
   const handleRunSimulation = async (customConfig?: Partial<SimulationConfig>) => {
@@ -75,9 +79,11 @@ export const App: React.FC = () => {
       setSelectedReportResult(res);
       setSimulationHistory((prev) => [res, ...prev]);
       setApiOnline(true);
+      setError(null);
     } catch (err: any) {
       console.error('Simulation execution error:', err);
       setError(err.message || 'An error occurred while executing the simulation.');
+      setRetryAction(() => () => handleRunSimulation(runCfg));
     } finally {
       setLoading(false);
     }
@@ -102,8 +108,14 @@ export const App: React.FC = () => {
               <span>{error}</span>
             </div>
             <button
-              onClick={() => handleRunSimulation()}
-              className="px-3 py-1 bg-rose-900 hover:bg-rose-800 text-xs font-bold rounded border border-rose-700 flex items-center gap-1.5 transition-colors"
+              onClick={() => {
+                if (retryAction) {
+                  retryAction();
+                } else {
+                  handleRunSimulation();
+                }
+              }}
+              className="px-3 py-1 bg-rose-900 hover:bg-rose-800 text-xs font-bold rounded border border-rose-700 flex items-center gap-1.5 transition-colors shrink-0"
             >
               <RefreshCw className="w-3.5 h-3.5" />
               RETRY

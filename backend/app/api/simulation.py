@@ -11,6 +11,7 @@ router = APIRouter()
 
 
 @router.get("/health", response_model=HealthResponse)
+@router.get("/health/", response_model=HealthResponse, include_in_schema=False)
 def get_health():
     """
     Health check endpoint.
@@ -19,6 +20,7 @@ def get_health():
 
 
 @router.post("/simulate/bb84", response_model=SimulationResult)
+@router.post("/simulate/bb84/", response_model=SimulationResult, include_in_schema=False)
 def simulate_bb84(req: SimulationRequest):
     """
     Run BB84 Quantum Key Distribution Simulation with optional Attacker Model,

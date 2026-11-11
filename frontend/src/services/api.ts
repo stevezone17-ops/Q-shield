@@ -3,73 +3,180 @@ import { ExperimentConfig, ExperimentResult } from '../types/experiment';
 import { LiveDemoPreset, VivaData } from '../types/presentation';
 
 const envUrl = (import.meta.env.VITE_API_URL || import.meta.env.VITE_API_BASE_URL || '') as string;
-const API_BASE_URL = envUrl
+export const API_BASE_URL = envUrl
   ? (envUrl.endsWith('/api') ? envUrl : `${envUrl.replace(/\/+$/, '')}/api`)
   : '/api';
 
-export async function checkHealth(): Promise<{ status: string; service: string }> {
-  const response = await fetch(`${API_BASE_URL}/health`);
-  if (!response.ok) {
-    throw new Error(`Health check failed with status: ${response.status}`);
+export class ApiError extends Error {
+  status?: number;
+  operation: string;
+  endpoint: string;
+
+  constructor(message: string, operation: string, endpoint: string, status?: number) {
+    super(message);
+    this.name = 'ApiError';
+    this.operation = operation;
+    this.endpoint = endpoint;
+    this.status = status;
   }
+}
+
+async function handleResponse<T>(response: Response, operation: string, endpoint: string): Promise<T> {
+  if (!response.ok) {
+    let errorDetail = response.statusText;
+    try {
+      const errorJson = await response.json();
+      errorDetail = errorJson.detail || errorDetail;
+    } catch {
+      // Body not JSON
+    }
+
+    if (response.status === 404) {
+      throw new ApiError(
+        `[${operation} 404 Not Found] Endpoint "${endpoint}" does not exist on target server (${errorDetail}). Verify Q-SHIELD backend routing and port 8001.`,
+        operation,
+        endpoint,
+        404
+      );
+    } else if (response.status === 500) {
+      throw new ApiError(
+        `[${operation} 500 Server Error] Internal error at "${endpoint}": ${errorDetail}`,
+        operation,
+        endpoint,
+        500
+      );
+    } else if (response.status === 422) {
+      throw new ApiError(
+        `[${operation} 422 Validation Error] Invalid request payload sent to "${endpoint}": ${JSON.stringify(errorDetail)}`,
+        operation,
+        endpoint,
+        422
+      );
+    } else {
+      throw new ApiError(
+        `[${operation} Error ${response.status}] Request to "${endpoint}" failed: ${errorDetail}`,
+        operation,
+        endpoint,
+        response.status
+      );
+    }
+  }
+
   return response.json();
+}
+
+export async function checkHealth(): Promise<{ status: string; service: string }> {
+  const endpoint = `${API_BASE_URL}/health`;
+  try {
+    const response = await fetch(endpoint);
+    const data = await handleResponse<{ status: string; service: string }>(response, 'Health Check', endpoint);
+
+    // Verify service identity to prevent accepting foreign services on the same port
+    if (data.service && !data.service.toLowerCase().includes('q-shield')) {
+      throw new ApiError(
+        `[Health Check Conflict] Connected to unexpected service "${data.service}" on port 8001. Expected "Q-SHIELD BB84 Simulator API".`,
+        'Health Check',
+        endpoint,
+        409
+      );
+    }
+
+    return data;
+  } catch (err: any) {
+    if (err instanceof ApiError) throw err;
+    throw new ApiError(
+      `[Health Check Connection Error] Unable to connect to Q-SHIELD backend at "${endpoint}". Ensure FastAPI is running on http://127.0.0.1:8001. (${err.message})`,
+      'Health Check',
+      endpoint
+    );
+  }
 }
 
 export async function runSimulation(config: SimulationConfig): Promise<SimulationResult> {
-  const response = await fetch(`${API_BASE_URL}/simulate/bb84`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify(config),
-  });
+  const endpoint = `${API_BASE_URL}/simulate/bb84`;
+  try {
+    const response = await fetch(endpoint, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(config),
+    });
 
-  if (!response.ok) {
-    const errorData = await response.json().catch(() => ({ detail: response.statusText }));
-    throw new Error(errorData.detail || 'Simulation request failed');
+    return await handleResponse<SimulationResult>(response, 'Simulation', endpoint);
+  } catch (err: any) {
+    if (err instanceof ApiError) throw err;
+    throw new ApiError(
+      `[Simulation Connection Error] Network request failed for "${endpoint}": ${err.message}`,
+      'Simulation',
+      endpoint
+    );
   }
-
-  return response.json();
 }
 
 export async function runExperiment(config: ExperimentConfig): Promise<ExperimentResult> {
-  const response = await fetch(`${API_BASE_URL}/experiments/run`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify(config),
-  });
+  const endpoint = `${API_BASE_URL}/experiments/run`;
+  try {
+    const response = await fetch(endpoint, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(config),
+    });
 
-  if (!response.ok) {
-    const errorData = await response.json().catch(() => ({ detail: response.statusText }));
-    throw new Error(errorData.detail || 'Experiment request failed');
+    return await handleResponse<ExperimentResult>(response, 'Experiment', endpoint);
+  } catch (err: any) {
+    if (err instanceof ApiError) throw err;
+    throw new ApiError(
+      `[Experiment Connection Error] Network request failed for "${endpoint}": ${err.message}`,
+      'Experiment',
+      endpoint
+    );
   }
-
-  return response.json();
 }
 
 export async function getLiveDemos(): Promise<{ demos: LiveDemoPreset[] }> {
-  const response = await fetch(`${API_BASE_URL}/presentation/demos`);
-  if (!response.ok) {
-    throw new Error('Failed to fetch presentation live demos');
+  const endpoint = `${API_BASE_URL}/presentation/demos`;
+  try {
+    const response = await fetch(endpoint);
+    return await handleResponse<{ demos: LiveDemoPreset[] }>(response, 'Live Demos', endpoint);
+  } catch (err: any) {
+    if (err instanceof ApiError) throw err;
+    throw new ApiError(
+      `[Presentation Demos Error] Failed to fetch live demos from "${endpoint}": ${err.message}`,
+      'Live Demos',
+      endpoint
+    );
   }
-  return response.json();
 }
 
 export async function getVivaQuestions(): Promise<VivaData> {
-  const response = await fetch(`${API_BASE_URL}/presentation/viva`);
-  if (!response.ok) {
-    throw new Error('Failed to fetch viva question bank');
+  const endpoint = `${API_BASE_URL}/presentation/viva`;
+  try {
+    const response = await fetch(endpoint);
+    return await handleResponse<VivaData>(response, 'Viva Questions', endpoint);
+  } catch (err: any) {
+    if (err instanceof ApiError) throw err;
+    throw new ApiError(
+      `[Viva Questions Error] Failed to fetch viva question bank from "${endpoint}": ${err.message}`,
+      'Viva Questions',
+      endpoint
+    );
   }
-  return response.json();
 }
 
 export async function getExperimentTemplates(): Promise<{ templates: any[] }> {
-  const response = await fetch(`${API_BASE_URL}/experiments/templates`);
-  if (!response.ok) {
-    throw new Error('Failed to fetch experiment templates');
+  const endpoint = `${API_BASE_URL}/experiments/templates`;
+  try {
+    const response = await fetch(endpoint);
+    return await handleResponse<{ templates: any[] }>(response, 'Experiment Templates', endpoint);
+  } catch (err: any) {
+    if (err instanceof ApiError) throw err;
+    throw new ApiError(
+      `[Experiment Templates Error] Failed to fetch templates from "${endpoint}": ${err.message}`,
+      'Experiment Templates',
+      endpoint
+    );
   }
-  return response.json();
 }
-

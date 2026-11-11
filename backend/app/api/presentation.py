@@ -12,6 +12,7 @@ router = APIRouter()
 
 
 @router.get("/presentation/demos")
+@router.get("/presentation/demos/", include_in_schema=False)
 def get_live_demo_presets() -> Dict[str, Any]:
     """
     Returns predefined live demonstration presets for Presentation Mode.
@@ -139,6 +140,7 @@ def get_live_demo_presets() -> Dict[str, Any]:
 
 
 @router.get("/presentation/viva")
+@router.get("/presentation/viva/", include_in_schema=False)
 def get_viva_question_bank() -> Dict[str, Any]:
     """
     Returns structured viva voce question bank, project pitches, cheat sheets,

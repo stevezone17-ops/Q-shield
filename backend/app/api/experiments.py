@@ -11,6 +11,7 @@ engine = QShieldExperimentEngine()
 
 
 @router.post("/experiments/run")
+@router.post("/experiments/run/", include_in_schema=False)
 def run_experiment_endpoint(req: ExperimentRequest):
     """
     Run a batch experiment across multiple simulation trials and return structured statistical analysis,
@@ -45,6 +46,7 @@ def run_experiment_endpoint(req: ExperimentRequest):
 
 
 @router.get("/experiments/templates")
+@router.get("/experiments/templates/", include_in_schema=False)
 def get_experiment_templates():
     """
     Get available experiment templates and recommended parameters.
