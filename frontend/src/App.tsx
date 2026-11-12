@@ -56,7 +56,7 @@ export const App: React.FC = () => {
     } catch (err: any) {
       console.warn('Backend API connection check failed:', err);
       setApiOnline(false);
-      setError(err.message || 'Backend API is offline. Ensure FastAPI server is running on http://127.0.0.1:8001.');
+      setError(err.message || 'Backend API is offline. Ensure FastAPI server is running on http://127.0.0.1:8002.');
       setRetryAction(() => () => checkConnection());
     }
   };

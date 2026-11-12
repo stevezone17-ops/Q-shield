@@ -33,7 +33,7 @@ async function handleResponse<T>(response: Response, operation: string, endpoint
 
     if (response.status === 404) {
       throw new ApiError(
-        `[${operation} 404 Not Found] Endpoint "${endpoint}" does not exist on target server (${errorDetail}). Verify Q-SHIELD backend routing and port 8001.`,
+        `[${operation} 404 Not Found] Endpoint "${endpoint}" does not exist on target server (${errorDetail}). Verify Q-SHIELD backend routing on dedicated port 8002.`,
         operation,
         endpoint,
         404
@@ -65,16 +65,29 @@ async function handleResponse<T>(response: Response, operation: string, endpoint
   return response.json();
 }
 
-export async function checkHealth(): Promise<{ status: string; service: string }> {
+export interface HealthStatus {
+  status: string;
+  service: string;
+  app_id?: string;
+  port?: number;
+  stage?: string;
+  version?: string;
+}
+
+export async function checkHealth(): Promise<HealthStatus> {
   const endpoint = `${API_BASE_URL}/health`;
   try {
     const response = await fetch(endpoint);
-    const data = await handleResponse<{ status: string; service: string }>(response, 'Health Check', endpoint);
+    const data = await handleResponse<HealthStatus>(response, 'Health Check', endpoint);
 
-    // Verify service identity to prevent accepting foreign services on the same port
-    if (data.service && !data.service.toLowerCase().includes('q-shield')) {
+    // Verify service identity: must identify as q-shield application
+    const isQShield =
+      data.app_id === 'q-shield' ||
+      (data.service && data.service.toLowerCase().includes('q-shield'));
+
+    if (!isQShield) {
       throw new ApiError(
-        `[Health Check Conflict] Connected to unexpected service "${data.service}" on port 8001. Expected "Q-SHIELD BB84 Simulator API".`,
+        `[Health Check Conflict] Connected to unexpected service "${data.service}" on port 8002. Expected "Q-SHIELD BB84 Simulator API".`,
         'Health Check',
         endpoint,
         409
@@ -85,7 +98,7 @@ export async function checkHealth(): Promise<{ status: string; service: string }
   } catch (err: any) {
     if (err instanceof ApiError) throw err;
     throw new ApiError(
-      `[Health Check Connection Error] Unable to connect to Q-SHIELD backend at "${endpoint}". Ensure FastAPI is running on http://127.0.0.1:8001. (${err.message})`,
+      `[Health Check Connection Error] Unable to connect to Q-SHIELD backend at "${endpoint}". Ensure FastAPI is running on http://127.0.0.1:8002. (${err.message})`,
       'Health Check',
       endpoint
     );

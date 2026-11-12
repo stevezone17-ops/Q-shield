@@ -131,7 +131,9 @@ class ExperimentRequest(BaseModel):
 
 
 class HealthResponse(BaseModel):
-    status: str = "ok"
+    status: str = "operational"
     service: str = "Q-SHIELD BB84 Simulator API"
+    app_id: str = "q-shield"
+    port: int = 8002
     stage: str = "Stage 7 — Experiment & Evaluation Mode"
-    version: str = "7.0.0"
+    version: str = "8.0.0"

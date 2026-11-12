@@ -13,7 +13,9 @@ def test_api_health_endpoint():
     response = client.get("/api/health")
     assert response.status_code == 200
     data = response.json()
-    assert data["status"] == "ok"
+    assert data["status"] == "operational"
+    assert data["app_id"] == "q-shield"
+    assert data["port"] == 8002
     assert "Q-SHIELD" in data["service"]
 
 
@@ -22,7 +24,9 @@ def test_api_health_root_fallback():
     response = client.get("/health")
     assert response.status_code == 200
     data = response.json()
-    assert data["status"] == "ok"
+    assert data["status"] == "operational"
+    assert data["app_id"] == "q-shield"
+    assert data["port"] == 8002
     assert "Q-SHIELD" in data["service"]
 
 
